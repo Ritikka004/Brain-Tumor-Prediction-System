@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>History - NeuroPredict</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+</head>
+<body id="app-body">
+    <nav class="navbar">
+        <a href="/" class="nav-brand">NeuroPredict</a>
+        <div class="nav-links">
+            <a href="/" class="nav-link">Home</a>
+            <a href="/predict" class="nav-link">Predict</a>
+            <a href="/history" class="nav-link">History</a>
+            <button onclick="toggleTheme()" class="theme-btn" title="Toggle Theme">🌙</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1 class="page-title">Diagnostic History</h1>
+        
+        <div class="card-table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date & Time Evaluated</th>
+                        <th>Patient Age</th>
+                        <th>Clinical Stage</th>
+                        <th>Model Prediction</th>
+                        <th>Confidence Target</th>
+                    </tr>
+                </thead>
+                <tbody id="historyTableBody">
+                    <!-- Javascript populates history dynamically -->
+                </tbody>
+            </table>
+            
+            <div class="history-empty" id="emptyState" style="display: none;">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <h3>No History Available</h3>
+                <p style="margin-top: 0.5rem; opacity: 0.8; margin-bottom: 2rem;">You haven't run any diagnostic predictions on this device yet.</p>
+                <a href="/predict" class="btn btn-primary">Start New Evaluation</a>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        Educational Research Dashboard &middot; NeuroPredict AI Healthcare Platform
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tableBody = document.getElementById('historyTableBody');
+            const emptyState = document.getElementById('emptyState');
+            const tableHead = document.querySelector('table');
+            
+            try {
+                let history = JSON.parse(localStorage.getItem('np_history')) || [];
+                
+                if (history.length === 0) {
+                    emptyState.style.display = 'block';
+                    tableHead.style.display = 'none';
+                } else {
+                    history.forEach(item => {
+                        const tr = document.createElement('tr');
+                        const statusClass = item.prediction === 'Malignant' ? 'malignant' : 'benign';
+                        const colorClass = item.prediction === 'Malignant' ? 'var(--danger)' : 'var(--success)';
+                        
+                        tr.innerHTML = `
+                            <td style="color: var(--text-muted); font-size: 0.9rem; font-weight: 500;">${item.date}</td>
+                            <td style="font-weight: 600;">${item.age}</td>
+                            <td style="font-weight: 600;">${item.stage}</td>
+                            <td><span class="status-badge ${statusClass}">${item.prediction}</span></td>
+                            <td style="font-weight: 700; color: ${colorClass};">${item.confidence}</td>
+                        `;
+                        tableBody.appendChild(tr);
+                    });
+                }
+            } catch (e) {
+                console.error("Local metrics unavailable.", e);
+                emptyState.style.display = 'block';
+                tableHead.style.display = 'none';
+            }
+        });
+
+        const body = document.getElementById("app-body");
+
+        function setTheme(theme) {
+            if (theme === "dark") {
+                body.classList.add("dark-mode");
+                localStorage.setItem("theme", "dark");
+            } else {
+                body.classList.remove("dark-mode");
+                localStorage.setItem("theme", "light");
+            }
+        }
+
+        function toggleTheme() {
+            if (body.classList.contains("dark-mode")) {
+                setTheme("light");
+            } else {
+                setTheme("dark");
+            }
+        }
+
+        // Load saved theme
+        window.onload = () => {
+            const savedTheme = localStorage.getItem("theme") || "light";
+            setTheme(savedTheme);
+            
+            // Auto-active link
+            const path = window.location.pathname;
+            document.querySelectorAll(".nav-link").forEach(link => {
+                link.classList.remove("active");
+                if (link.getAttribute("href") === path) {
+                    link.classList.add("active");
+                }
+            });
+        };
+    </script>
+</body>
+</html>

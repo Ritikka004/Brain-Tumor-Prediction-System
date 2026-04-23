@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediction Result - NeuroPredict</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+</head>
+<body id="app-body">
+    <nav class="navbar">
+        <a href="/" class="nav-brand">NeuroPredict</a>
+        <div class="nav-links">
+            <a href="/" class="nav-link">Home</a>
+            <a href="/predict" class="nav-link">Predict</a>
+            <a href="/history" class="nav-link">History</a>
+            <button onclick="toggleTheme()" class="theme-btn" title="Toggle Theme">🌙</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1 class="page-title">Diagnostic Results</h1>
+        
+        <div class="split-layout">
+            <!-- LEFT: Submitted Form Display -->
+            <div class="form-panel">
+                <h3 class="form-title">Clinical Parameters Snapshot</h3>
+                <div style="opacity: 0.6; pointer-events: none;">
+                    <form>
+                        <div class="form-group">
+                            <div class="form-header"><label class="form-label">Patient Age</label><span class="live-value">{{ input_data['Age'] }}</span></div>
+                            <input type="range" value="{{ input_data['Age'] }}" max="100">
+                        </div>
+                        <div class="form-group">
+                            <div class="form-header"><label class="form-label">Tumor Size (mm)</label><span class="live-value">{{ input_data['Tumor Size'] }}</span></div>
+                            <input type="range" value="{{ input_data['Tumor Size'] }}" max="100">
+                        </div>
+                        <div class="form-group">
+                            <div class="form-header"><label class="form-label">Estimated Survival Rate (%)</label><span class="live-value">{{ input_data['Survival Rate'] }}</span></div>
+                            <input type="range" value="{{ input_data['Survival Rate'] }}" max="100">
+                        </div>
+                        <div class="form-group">
+                            <div class="form-header"><label class="form-label">Growth Rate Scale</label><span class="live-value">{{ input_data['Tumor Growth Rate'] }}</span></div>
+                            <input type="range" value="{{ input_data['Tumor Growth Rate'] }}" max="10">
+                        </div>
+                        <div class="form-group">
+                            <div class="form-header"><label class="form-label">Clinical Stage Focus</label><span class="live-value">{{ input_data['Stage'] }}</span></div>
+                            <input type="range" value="{{ input_data['Stage'] }}" max="4">
+                        </div>
+                        <div class="form-group">
+                            <div class="form-header"><label class="form-label">Measured Tumor Density</label><span class="live-value">{{ input_data['Tumor Density'] }}</span></div>
+                            <input type="range" value="{{ input_data['Tumor Density'] }}" max="50">
+                        </div>
+                        <div class="form-group">
+                            <div class="form-header"><label class="form-label">Edema Swelling Size (mm)</label><span class="live-value">{{ input_data['Edema Size'] }}</span></div>
+                            <input type="range" value="{{ input_data['Edema Size'] }}" max="50">
+                        </div>
+                    </form>
+                </div>
+                <div class="form-actions" style="margin-top: 1rem; border-top: none;">
+                    <a href="/predict" class="btn btn-outline" style="width: 100%;">Configure New Evaluation</a>
+                </div>
+            </div>
+
+            <!-- RIGHT: Active Result Panel -->
+            <div class="result-panel">
+                <div class="result-header">
+                    <h3 style="font-size: 1.5rem; color: var(--text-main);">Analysis Complete</h3>
+                    <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 0.5rem;">Diagnostic metrics securely evaluated.</p>
+                </div>
+
+                {% if error %}
+                    <div class="error-card">
+                        <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">⚠️</div>
+                        <strong>Diagnostic Error Encountered</strong><br>
+                        {{ error }}
+                    </div>
+                {% else %}
+                    <!-- Visual Prediction Core -->
+                    <div class="prediction-circle {% if prediction == 'Malignant' %}malignant{% else %}benign{% endif %}">
+                        <div class="prediction-circle-inner">
+                            <span class="pred-label">Diagnostic Output</span>
+                            <span class="pred-value {% if prediction == 'Malignant' %}val-malignant{% else %}val-benign{% endif %}" id="resultStatus">
+                                {{ prediction }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="confidence-wrapper">
+                        <div class="confidence-header">
+                            <span style="color: var(--text-main);">Model Confidence Target</span>
+                            <span style="{% if prediction == 'Malignant' %}color: var(--danger);{% else %}color: var(--success);{% endif %}">{{ confidence|round(2) }}%</span>
+                        </div>
+                        <div class="progress-track">
+                            <div class="progress-fill {% if prediction == 'Malignant' %}fill-malignant{% else %}fill-benign{% endif %}" 
+                                 id="confidenceBar" 
+                                 style="width: 0%;" 
+                                 data-target="{{ confidence }}"></div>
+                        </div>
+                    </div>
+
+                    {% if top_features and top_features|length > 0 %}
+                    <div class="features-box">
+                        <h4>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
+                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                            </svg>
+                            Leading Clinical Factors
+                        </h4>
+                        <div class="feature-list">
+                            {% for feature in top_features %}
+                            <div class="feature-item">
+                                <span class="feature-name">{{ feature.name }}</span>
+                                <span class="feature-val" style="{% if prediction == 'Malignant' %}color: var(--danger);{% else %}color: var(--success);{% endif %}">
+                                    {{ feature.importance }}
+                                </span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        Educational Research Dashboard &middot; NeuroPredict AI Healthcare Platform
+    </footer>
+
+    <!-- Pass backend prediction correctly parsing localized UX mapping history -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Smoothly animate confidence bar
+            const bar = document.getElementById('confidenceBar');
+            if (bar) {
+                const targetWidth = bar.getAttribute('data-target') + '%';
+                setTimeout(() => { bar.style.width = targetWidth; }, 150);
+            }
+
+            {% if not error and prediction %}
+            // Push history local logging immediately 
+            try {
+                let history = JSON.parse(localStorage.getItem('np_history')) || [];
+                const res = {
+                    date: new Date().toLocaleDateString() + " " + new Date().toLocaleTimeString(),
+                    prediction: '{{ prediction }}',
+                    confidence: '{{ confidence|round(2) }}%',
+                    age: '{{ input_data["Age"] }}',
+                    stage: '{{ input_data["Stage"] }}'
+                };
+                // Prepend successfully ensuring tracking bounds limiting elements to 50
+                history.unshift(res);
+                if (history.length > 50) history.pop();
+                localStorage.setItem('np_history', JSON.stringify(history));
+            } catch (e) {
+                console.error("Local caching restricted or unavailable contextually.", e);
+            }
+            {% endif %}
+        });
+    </script>
+    <script>
+        const body = document.getElementById("app-body");
+
+        function setTheme(theme) {
+            if (theme === "dark") {
+                body.classList.add("dark-mode");
+                localStorage.setItem("theme", "dark");
+            } else {
+                body.classList.remove("dark-mode");
+                localStorage.setItem("theme", "light");
+            }
+        }
+
+        function toggleTheme() {
+            if (body.classList.contains("dark-mode")) {
+                setTheme("light");
+            } else {
+                setTheme("dark");
+            }
+        }
+
+        // Load saved theme
+        window.onload = () => {
+            const savedTheme = localStorage.getItem("theme") || "light";
+            setTheme(savedTheme);
+            
+            // Auto-active link
+            const path = window.location.pathname;
+            document.querySelectorAll(".nav-link").forEach(link => {
+                link.classList.remove("active");
+                if (link.getAttribute("href") === path) {
+                    link.classList.add("active");
+                }
+            });
+        };
+    </script>
+</body>
+</html>

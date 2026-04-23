@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predict - NeuroPredict</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+</head>
+<body id="app-body">
+    <nav class="navbar">
+        <a href="/" class="nav-brand">NeuroPredict</a>
+        <div class="nav-links">
+            <a href="/" class="nav-link">Home</a>
+            <a href="/predict" class="nav-link">Predict</a>
+            <a href="/history" class="nav-link">History</a>
+            <button onclick="toggleTheme()" class="theme-btn" title="Toggle Theme">🌙</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1 class="page-title">Diagnostic Engine</h1>
+        
+        <div class="split-layout">
+            <!-- LEFT: Form Panel -->
+            <div class="form-panel">
+                <h3 class="form-title">Input Clinical Parameters</h3>
+                <form id="predictionForm" method="POST" action="/predict">
+                    <!-- Iterating the 7 features via Range Inputs safely -->
+                    <div class="form-group">
+                        <div class="form-header">
+                            <label for="age" class="form-label">
+                                Patient Age 
+                                <span class="info-icon">?
+                                    <span class="tooltip-text">Demographic age of the patient (Years). Range: 0-100.</span>
+                                </span>
+                            </label>
+                            <span class="live-value" id="age_val">45</span>
+                        </div>
+                        <input type="range" id="age" name="age" min="0" max="100" value="45" oninput="document.getElementById('age_val').innerText = this.value">
+                        <small class="validation-msg">Valid range: 0 to 100 years</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="form-header">
+                            <label for="tumor_size" class="form-label">
+                                Tumor Size (mm)
+                                <span class="info-icon">?
+                                    <span class="tooltip-text">Maximum diameter of the tumor region observed.</span>
+                                </span>
+                            </label>
+                            <span class="live-value" id="size_val">25.0</span>
+                        </div>
+                        <input type="range" id="tumor_size" name="tumor_size" min="1" max="100" step="0.5" value="25.0" oninput="document.getElementById('size_val').innerText = parseFloat(this.value).toFixed(1)">
+                    </div>
+
+                    <div class="form-group">
+                        <div class="form-header">
+                            <label for="survival_rate" class="form-label">
+                                Estimated Survival Rate (%)
+                                <span class="info-icon">?
+                                    <span class="tooltip-text">Projected survival rate benchmark based on current state.</span>
+                                </span>
+                            </label>
+                            <span class="live-value" id="survival_val">75.0</span>
+                        </div>
+                        <input type="range" id="survival_rate" name="survival_rate" min="0.1" max="100" step="0.1" value="75.0" oninput="document.getElementById('survival_val').innerText = parseFloat(this.value).toFixed(1)">
+                    </div>
+
+                    <div class="form-group">
+                        <div class="form-header">
+                            <label for="tumor_growth_rate" class="form-label">
+                                Growth Rate Scale
+                                <span class="info-icon">?
+                                    <span class="tooltip-text">Estimated cellular replication expansion rate (1-10 severity).</span>
+                                </span>
+                            </label>
+                            <span class="live-value" id="growth_val">5.0</span>
+                        </div>
+                        <input type="range" id="tumor_growth_rate" name="tumor_growth_rate" min="1" max="10" step="0.5" value="5.0" oninput="document.getElementById('growth_val').innerText = parseFloat(this.value).toFixed(1)">
+                    </div>
+
+                    <div class="form-group">
+                        <div class="form-header">
+                            <label for="stage" class="form-label">
+                                Clinical Stage Focus
+                                <span class="info-icon">?
+                                    <span class="tooltip-text">WHO Classification Stage mapping (1 to 4).</span>
+                                </span>
+                            </label>
+                            <span class="live-value" id="stage_val">2</span>
+                        </div>
+                        <input type="range" id="stage" name="stage" min="1" max="4" step="1" value="2" oninput="document.getElementById('stage_val').innerText = this.value">
+                    </div>
+
+                    <div class="form-group">
+                        <div class="form-header">
+                            <label for="tumor_density" class="form-label">
+                                Measured Tumor Density
+                                <span class="info-icon">?
+                                    <span class="tooltip-text">Radiological metric evaluating mass solidity/density.</span>
+                                </span>
+                            </label>
+                            <span class="live-value" id="density_val">15.0</span>
+                        </div>
+                        <input type="range" id="tumor_density" name="tumor_density" min="0.1" max="50" step="0.5" value="15.0" oninput="document.getElementById('density_val').innerText = parseFloat(this.value).toFixed(1)">
+                    </div>
+
+                    <div class="form-group">
+                        <div class="form-header">
+                            <label for="edema_size" class="form-label">
+                                Edema Swelling Size (mm)
+                                <span class="info-icon">?
+                                    <span class="tooltip-text">Peripheral fluid accumulated surrounding the mass structure.</span>
+                                </span>
+                            </label>
+                            <span class="live-value" id="edema_val">5.0</span>
+                        </div>
+                        <input type="range" id="edema_size" name="edema_size" min="0" max="50" step="0.5" value="5.0" oninput="document.getElementById('edema_val').innerText = parseFloat(this.value).toFixed(1)">
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="reset" class="btn btn-secondary" onclick="setTimeout(() => { document.querySelectorAll('input[type=range]').forEach(i => i.dispatchEvent(new Event('input'))) }, 10)">Reset form</button>
+                        <button type="submit" class="btn btn-primary" id="submitBtn">
+                            <span class="btn-text">Run Prediction Engine</span>
+                            <span class="spinner"></span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- RIGHT: Awaiting Result Panel -->
+            <div class="result-panel">
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 16 16 12 12 8"></polyline>
+                            <line x1="8" y1="12" x2="16" y2="12"></line>
+                        </svg>
+                    </div>
+                    <h3>Awaiting Parameters</h3>
+                    <p style="opacity: 0.8;">Adjust the clinical metrics securely on the left and run the prediction engine to view detailed diagnostic results.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        Educational Research Dashboard &middot; NeuroPredict AI Healthcare Platform
+    </footer>
+
+    <script>
+        document.getElementById('predictionForm').addEventListener('submit', function() {
+            var btn = document.getElementById('submitBtn');
+            btn.classList.add('loading');
+            document.querySelector('.empty-state').style.opacity = '0.5';
+            setTimeout(function() {
+                btn.disabled = true;
+            }, 10);
+        });
+    </script>
+    <script>
+        const body = document.getElementById("app-body");
+
+        function setTheme(theme) {
+            if (theme === "dark") {
+                body.classList.add("dark-mode");
+                localStorage.setItem("theme", "dark");
+            } else {
+                body.classList.remove("dark-mode");
+                localStorage.setItem("theme", "light");
+            }
+        }
+
+        function toggleTheme() {
+            if (body.classList.contains("dark-mode")) {
+                setTheme("light");
+            } else {
+                setTheme("dark");
+            }
+        }
+
+        // Load saved theme
+        window.onload = () => {
+            const savedTheme = localStorage.getItem("theme") || "light";
+            setTheme(savedTheme);
+            
+            // Auto-active link
+            const path = window.location.pathname;
+            document.querySelectorAll(".nav-link").forEach(link => {
+                link.classList.remove("active");
+                if (link.getAttribute("href") === path) {
+                    link.classList.add("active");
+                }
+            });
+        };
+    </script>
+</body>
+</html>
